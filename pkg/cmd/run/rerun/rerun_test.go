@@ -403,6 +403,47 @@ func TestRerun(t *testing.T) {
 			errOut:  "run 3 cannot be rerun; blah blah",
 		},
 		{
+			name: "job API error (403)",
+			tty:  true,
+			opts: &RerunOptions{
+				JobID: "20",
+			},
+			httpStubs: func(reg *httpmock.Registry) {
+				reg.Register(
+					httpmock.REST("GET", "repos/OWNER/REPO/actions/jobs/20"),
+					httpmock.JSONResponse(shared.FailedJob))
+				reg.Register(
+					httpmock.REST("POST", "repos/OWNER/REPO/actions/jobs/20/rerun"),
+					httpmock.JSONErrorResponse(403, api.HTTPError{
+						StatusCode: 403,
+						Message:    "Must have admin rights to Repository.",
+					}),
+				)
+			},
+			wantErr: true,
+			errOut:  "job 20 cannot be rerun; Must have admin rights to Repository.",
+		},
+		{
+			name: "job API error (403) with empty message",
+			tty:  true,
+			opts: &RerunOptions{
+				JobID: "20",
+			},
+			httpStubs: func(reg *httpmock.Registry) {
+				reg.Register(
+					httpmock.REST("GET", "repos/OWNER/REPO/actions/jobs/20"),
+					httpmock.JSONResponse(shared.FailedJob))
+				reg.Register(
+					httpmock.REST("POST", "repos/OWNER/REPO/actions/jobs/20/rerun"),
+					httpmock.JSONErrorResponse(403, api.HTTPError{
+						StatusCode: 403,
+					}),
+				)
+			},
+			wantErr: true,
+			errOut:  "job 20 cannot be rerun",
+		},
+		{
 			name: "API error (non-403)",
 			tty:  true,
 			opts: &RerunOptions{
